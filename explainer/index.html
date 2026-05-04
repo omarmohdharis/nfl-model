@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The 4th Down Decision — How the Model Works</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --field-green: #1f4d2d;
+    --field-green-deep: #163a22;
+    --field-green-soft: #e8f0e7;
+    --field-green-line: #2d6f44;
+    --chalk: #f5f3ec;
+    --chalk-dark: #e8e4d6;
+    --pigskin: #8a4a2a;
+    --pigskin-light: #c8915c;
+    --gold: #c8a035;
+    --gold-light: #f3e7be;
+    --penalty-red: #b03028;
+    --penalty-red-light: #fbecea;
+    --ink: #1a1a18;
+    --ink-soft: #4a4a44;
+    --ink-mute: #797972;
+    --paper: #fafaf5;
+    --surface: #ffffff;
+    --rule: rgba(0, 0, 0, 0.10);
+    --rule-strong: rgba(0, 0, 0, 0.22);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --field-green: #2d7a48;
+      --field-green-deep: #1a4a2a;
+      --field-green-soft: rgba(45, 122, 72, 0.12);
+      --field-green-line: #5fa775;
+      --chalk: #1a1a18;
+      --chalk-dark: #242422;
+      --pigskin: #c8915c;
+      --pigskin-light: #d8a878;
+      --gold: #e5b945;
+      --gold-light: rgba(229, 185, 69, 0.15);
+      --penalty-red: #e8736b;
+      --penalty-red-light: rgba(232, 115, 107, 0.15);
+      --ink: #ebebe6;
+      --ink-soft: #b8b8b1;
+      --ink-mute: #7e7e78;
+      --paper: #16161a;
+      --surface: #1f1f22;
+      --rule: rgba(255, 255, 255, 0.10);
+      --rule-strong: rgba(255, 255, 255, 0.22);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.7;
+    font-size: 17px;
+  }
+
+  .hero {
+    position: relative;
+    background: var(--field-green-deep);
+    color: var(--chalk);
+    padding: 5rem 1.5rem 7rem;
+    overflow: hidden;
+    border-bottom: 6px solid var(--gold);
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(
+        90deg,
+        transparent 0,
+        transparent 79px,
+        rgba(255, 255, 255, 0.06) 79px,
+        rgba(255, 255, 255, 0.06) 80px
+      );
+    pointer-events: none;
+  }
+  .hero-content {
+    max-width: 760px;
+    margin: 0 auto;
+    position: relative;
+  }
+  .kicker {
+    display: inline-block;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    border-top: 2px solid var(--gold);
+    border-bottom: 2px solid var(--gold);
+    padding: 6px 0;
+    margin-bottom: 1.75rem;
+  }
+  h1.headline {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 56px;
+    font-weight: 600;
+    line-height: 1.05;
+    margin: 0 0 1.5rem;
+    letter-spacing: -0.02em;
+    color: var(--chalk);
+  }
+  .deck {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1.4;
+    color: var(--chalk-dark);
+    margin: 0 0 2rem;
+    max-width: 580px;
+  }
+  .byline {
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    color: rgba(245, 243, 236, 0.7);
+    text-transform: uppercase;
+    border-top: 0.5px solid rgba(245, 243, 236, 0.3);
+    padding-top: 1rem;
+    max-width: 320px;
+  }
+  .byline strong { color: var(--gold); font-weight: 600; }
+
+  .wrap {
+    max-width: 760px;
+    margin: -3rem auto 0;
+    padding: 0 1.5rem 6rem;
+    position: relative;
+  }
+  article {
+    background: var(--surface);
+    padding: 3rem 2.5rem;
+    border-radius: 4px;
+    box-shadow: 0 10px 40px -8px rgba(0, 0, 0, 0.15);
+  }
+  @media (max-width: 600px) {
+    article { padding: 2rem 1.25rem; }
+    h1.headline { font-size: 38px; }
+    .deck { font-size: 18px; }
+  }
+
+  section { margin-bottom: 4rem; }
+  section + section {
+    padding-top: 4rem;
+    position: relative;
+  }
+  section + section::before {
+    content: '';
+    position: absolute;
+    top: 1.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 14px;
+    background-image:
+      linear-gradient(to right,
+        var(--field-green) 0,
+        var(--field-green) 2px,
+        transparent 2px,
+        transparent 16px
+      );
+    background-size: 16px 14px;
+  }
+
+  .section-num {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--field-green);
+    margin-bottom: 1rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    .section-num { color: var(--field-green-line); }
+  }
+  .section-num::before {
+    content: '';
+    display: inline-block;
+    width: 18px;
+    height: 2px;
+    background: var(--gold);
+  }
+
+  h2 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 36px;
+    font-weight: 600;
+    line-height: 1.15;
+    margin: 0 0 1.25rem;
+    letter-spacing: -0.015em;
+  }
+  h3 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 22px;
+    font-weight: 600;
+    margin: 2rem 0 0.75rem;
+  }
+  p {
+    margin: 0 0 1.1rem;
+    color: var(--ink);
+  }
+  p.lead {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 21px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    font-weight: 400;
+  }
+  p.lead::first-letter {
+    font-weight: 600;
+    color: var(--field-green);
+  }
+  @media (prefers-color-scheme: dark) {
+    p.lead::first-letter { color: var(--field-green-line); }
+  }
+
+  ul {
+    padding-left: 1.5rem;
+    margin: 0 0 1.25rem;
+  }
+  ul li { margin-bottom: 0.5rem; }
+  ul li::marker { color: var(--field-green); }
+  @media (prefers-color-scheme: dark) {
+    ul li::marker { color: var(--gold); }
+  }
+
+  blockquote {
+    margin: 1.5rem 0;
+    padding: 1.25rem 1.5rem;
+    background: var(--field-green-soft);
+    border-left: 3px solid var(--gold);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 18px;
+    font-style: italic;
+    color: var(--ink);
+  }
+
+  .panel {
+    background: var(--paper);
+    border: 0.5px solid var(--rule);
+    border-radius: 4px;
+    padding: 1.75rem;
+    margin: 1.75rem 0;
+    position: relative;
+  }
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--field-green);
+  }
+
+  .field-wrap {
+    border: 2px solid var(--ink);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .field-viz {
+    width: 100%;
+    height: 130px;
+    background: linear-gradient(to bottom, #1f5d33 0%, #1a4d2a 100%);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+  }
+  .field-end {
+    flex: 0 0 32px;
+    background: repeating-linear-gradient(
+      45deg,
+      var(--gold) 0,
+      var(--gold) 8px,
+      var(--field-green-deep) 8px,
+      var(--field-green-deep) 16px
+    );
+    position: relative;
+  }
+  .field-end.left { border-right: 2px solid white; }
+  .field-end.right { border-left: 2px solid white; }
+  .field-end-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: white;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  }
+  .field-play {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  .field-play::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.04) 0,
+        rgba(255, 255, 255, 0.04) 40px,
+        transparent 40px,
+        transparent 80px
+      );
+  }
+  .field-yardline {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.55);
+  }
+  .field-yardline.major { width: 2px; background: rgba(255, 255, 255, 0.85); }
+  .field-yardline-label {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+    letter-spacing: 0.05em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+  .field-marker {
+    position: absolute;
+    top: 50%;
+    width: 22px;
+    height: 14px;
+    background: var(--pigskin);
+    border: 2px solid #4d2811;
+    border-radius: 50% / 60%;
+    transform: translate(-50%, -50%);
+    transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  }
+  .field-marker::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 1.5px;
+    background: white;
+    border-radius: 1px;
+    box-shadow: 0 -2px white, 0 2px white;
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+  .slider-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    min-width: 110px;
+  }
+  input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--rule-strong);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    background: var(--field-green);
+    border: 2px solid white;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: var(--field-green);
+    border: 2px solid white;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .slider-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 80px;
+    text-align: right;
+    color: var(--ink);
+  }
+
+  .scoreboard {
+    background: var(--field-green-deep);
+    color: var(--chalk);
+    border-radius: 4px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+    text-align: center;
+    border: 2px solid var(--gold);
+    position: relative;
+  }
+  .scoreboard-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+  .scoreboard-value {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--chalk);
+    font-variant-numeric: tabular-nums;
+  }
+  .scoreboard-value.negative { color: var(--penalty-red); }
+
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: var(--surface);
+    border: 0.5px solid var(--rule);
+    border-radius: 4px;
+  }
+
+  .iter-buttons {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin: 1.25rem 0;
+    background: var(--field-green-deep);
+    padding: 4px;
+    border-radius: 4px;
+  }
+  .iter-btn {
+    flex: 1;
+    min-width: 90px;
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: transparent;
+    color: rgba(245, 243, 236, 0.6);
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .iter-btn:hover { color: var(--chalk); }
+  .iter-btn.active {
+    background: var(--gold);
+    color: var(--field-green-deep);
+    font-weight: 700;
+  }
+
+  .v-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 1.25rem 0;
+  }
+  .v-cell {
+    background: var(--surface);
+    border: 0.5px solid var(--rule);
+    border-radius: 2px;
+    padding: 16px 8px;
+    text-align: center;
+    transition: all 0.4s ease;
+    position: relative;
+  }
+  .v-cell.updated {
+    border-color: var(--gold);
+    background: var(--gold-light);
+    box-shadow: 0 0 0 2px var(--gold);
+  }
+  .v-cell.negative {
+    background: var(--penalty-red-light);
+    border-color: var(--penalty-red);
+  }
+  .v-cell-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 6px;
+  }
+  .v-cell-value {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 26px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  .iter-explanation {
+    margin-top: 1.25rem;
+    padding: 16px 20px;
+    background: var(--field-green-soft);
+    border-left: 3px solid var(--field-green);
+    border-radius: 2px;
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--ink);
+    min-height: 90px;
+  }
+  @media (prefers-color-scheme: dark) {
+    .iter-explanation { border-left-color: var(--field-green-line); }
+  }
+
+  .pill-row {
+    display: inline-flex;
+    gap: 0;
+    margin: 1.25rem 0;
+    background: var(--paper);
+    padding: 4px;
+    border: 0.5px solid var(--rule);
+    border-radius: 4px;
+  }
+  .pill {
+    padding: 8px 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    background: transparent;
+    color: var(--ink-soft);
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pill:hover { color: var(--ink); }
+  .pill.active {
+    background: var(--field-green);
+    color: var(--chalk);
+  }
+
+  .ev-row {
+    display: grid;
+    grid-template-columns: 130px 1fr 90px;
+    align-items: center;
+    gap: 16px;
+    margin: 10px 0;
+  }
+  .ev-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+  }
+  .ev-bar-track {
+    height: 30px;
+    background: var(--rule);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ev-bar-zero-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 2;
+  }
+  .ev-bar-fill {
+    position: absolute;
+    height: 100%;
+    transition: all 0.3s ease;
+    border-radius: 2px;
+  }
+  .ev-bar-fill.recommended {
+    box-shadow: inset 0 0 0 2px var(--gold), 0 0 0 2px var(--gold);
+  }
+  .ev-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  .recommendation-banner {
+    margin-top: 1.5rem;
+    padding: 14px 20px;
+    background: var(--field-green-deep);
+    color: var(--chalk);
+    border-radius: 2px;
+    border-left: 4px solid var(--gold);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 18px;
+  }
+  .recommendation-banner .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .recommendation-banner .verdict {
+    font-weight: 600;
+    color: var(--chalk);
+  }
+
+  .footer {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 0.5px solid var(--rule);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--ink-mute);
+    letter-spacing: 0.02em;
+  }
+
+  .small-text {
+    font-size: 14px;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-content">
+    <span class="kicker">Sports Analytics · Decision Theory</span>
+    <h1 class="headline">It's fourth down.<br />Now what?</h1>
+    <p class="deck">A walkthrough of how a dynamic programming model decides when to punt, kick, or go for it — and why NFL coaches still get it wrong.</p>
+    <div class="byline">
+      An interactive companion to a replication of <strong>Romer (2003)</strong>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+<article>
+
+<section>
+  <span class="section-num">Section 01 — The setup</span>
+  <h2>What's the right call?</h2>
+  <p class="lead">It's 4th down. Your team needs 3 yards. You're at midfield. What should you do?</p>
+  <p>Your three options each lead to a different future state of the game:</p>
+  <ul>
+    <li><strong>Punt</strong> — give the ball to the opponent, but they start far from your end zone.</li>
+    <li><strong>Field goal</strong> — try for 3 points, but if you miss, the opponent gets the ball at the spot of the kick.</li>
+    <li><strong>Go for it</strong> — try to gain the 3 yards. Succeed and you have a fresh set of downs. Fail and the opponent takes over right where you are.</li>
+  </ul>
+  <p>To choose well, you need to know what each of those future states is <em>worth</em>. That's the foundation of the whole model. Let's build it up step by step.</p>
+</section>
+
+<section>
+  <span class="section-num">Section 02 — The value function</span>
+  <h2>What's a yard line worth?</h2>
+  <p class="lead">For any spot on the field, the <em>value</em> is the expected net points your team will score, on average, over the rest of the game.</p>
+  <p>This isn't intuitive at first. Move the ball below — see how the expected points change as the ball moves up the field.</p>
+
+  <div class="panel">
+    <div class="field-wrap">
+      <div class="field-viz" id="field1">
+        <div class="field-end left">
+          <div class="field-end-label">End zone</div>
+        </div>
+        <div class="field-play" id="field1-play">
+          <div class="field-marker" id="marker1"></div>
+        </div>
+        <div class="field-end right">
+          <div class="field-end-label">End zone</div>
+        </div>
+      </div>
+    </div>
+    <div class="slider-row">
+      <span class="slider-label">Yard line</span>
+      <input type="range" min="1" max="99" value="50" id="yl-slider" step="1" />
+      <span class="slider-value" id="yl-display">Own 50</span>
+    </div>
+    <div class="scoreboard">
+      <div class="scoreboard-label">Expected net points (rest of game)</div>
+      <div class="scoreboard-value" id="v-display">+1.79</div>
+    </div>
+  </div>
+
+  <p>Notice the curve has a few interesting properties:</p>
+  <ul>
+    <li>Near your own goal line, the value is <strong>negative</strong>. Being pinned at your own 1 means you'll likely punt soon, giving the opponent good field position — and they'll often score.</li>
+    <li>Around your own 15, the value crosses zero — the break-even point.</li>
+    <li>The value rises smoothly across the field, accelerating near the opponent's end zone where touchdowns become likely.</li>
+  </ul>
+
+  <div class="chart-wrap">
+    <canvas id="value-chart"></canvas>
+  </div>
+</section>
+
+<section>
+  <span class="section-num">Section 03 — Value iteration</span>
+  <h2>How do we compute the values?</h2>
+  <p class="lead">The clever part: we don't need to know the values to start. We just guess, then refine.</p>
+  <p>This is called <strong>value iteration</strong>. The Bellman equation says:</p>
+  <blockquote>
+    Value of where I am = points scored before next state + value of where I end up next.
+  </blockquote>
+  <p>The recursion looks circular — to find one value, we need other values. But it converges if we start with any guess and refine repeatedly. Step through the iterations to see how information propagates backward through the chain.</p>
+
+  <div class="panel">
+    <div class="iter-buttons">
+      <button class="iter-btn active" data-iter="0" onclick="setIter(0)">Iter 0</button>
+      <button class="iter-btn" data-iter="1" onclick="setIter(1)">Iter 1</button>
+      <button class="iter-btn" data-iter="2" onclick="setIter(2)">Iter 2</button>
+      <button class="iter-btn" data-iter="3" onclick="setIter(3)">Iter 3</button>
+      <button class="iter-btn" data-iter="4" onclick="setIter(4)">Converged</button>
+    </div>
+
+    <div class="v-grid" id="v-grid">
+      <div class="v-cell" data-yl="own1"><div class="v-cell-label">Own 1</div><div class="v-cell-value">0.0</div></div>
+      <div class="v-cell" data-yl="own25"><div class="v-cell-label">Own 25</div><div class="v-cell-value">0.0</div></div>
+      <div class="v-cell" data-yl="mid"><div class="v-cell-label">Midfield</div><div class="v-cell-value">0.0</div></div>
+      <div class="v-cell" data-yl="opp10"><div class="v-cell-label">Opp 10</div><div class="v-cell-value">0.0</div></div>
+    </div>
+
+    <div class="iter-explanation" id="iter-text">
+      All values start at zero. We don't know anything yet — this is just our arbitrary starting guess. Click "Iter 1" to see what one pass through the data does.
+    </div>
+  </div>
+</section>
+
+<section>
+  <span class="section-num">Section 04 — Component models</span>
+  <h2>Three more pieces we need</h2>
+  <p class="lead">To compare options, we need to know the probability of each outcome. Three small models handle this.</p>
+
+  <div class="pill-row">
+    <button class="pill active" onclick="showComponent('fg')">Field goal</button>
+    <button class="pill" onclick="showComponent('punt')">Punt outcomes</button>
+    <button class="pill" onclick="showComponent('conv')">Conversion</button>
+  </div>
+
+  <div id="component-fg" class="component-panel">
+    <h3>How likely is the field goal to be made?</h3>
+    <p>A logistic regression on kick distance. Almost automatic from short range, dropping below 50% past 60 yards.</p>
+    <div class="chart-wrap"><canvas id="fg-chart"></canvas></div>
+    <p class="small-text">Modern NFL kickers make about 73% of 50-yard attempts and 49% of 60-yarders.</p>
+  </div>
+
+  <div id="component-punt" class="component-panel" style="display:none">
+    <h3>Where does the ball end up after a punt?</h3>
+    <p>This one's trickier — punts can be returned, blocked, downed, fair-caught, or even returned for touchdowns. The model captures the full distribution.</p>
+    <div class="chart-wrap"><canvas id="punt-chart"></canvas></div>
+    <p class="small-text">The expected value of punting is almost always negative (you give the ball away). The question on 4th down is which option is <em>least</em> negative.</p>
+  </div>
+
+  <div id="component-conv" class="component-panel" style="display:none">
+    <h3>How likely is the offense to convert?</h3>
+    <p>Another logistic regression, this time on yards-to-go. Field position barely matters across most of the field — what matters is how far you have to go.</p>
+    <div class="chart-wrap"><canvas id="conv-chart"></canvas></div>
+    <p class="small-text">Romer used 3rd-down plays as a proxy for 4th-down outcomes; modern data has enough 4th-down attempts to verify the assumption holds.</p>
+  </div>
+</section>
+
+<section>
+  <span class="section-num">Section 05 — The decision</span>
+  <h2>Putting it all together</h2>
+  <p class="lead">For any 4th down situation, we compute the expected value of each option and recommend the highest.</p>
+  <p>Try different situations below — drag the sliders to see how the model's recommendation changes.</p>
+
+  <div class="panel">
+    <div class="field-wrap">
+      <div class="field-viz" id="field2">
+        <div class="field-end left">
+          <div class="field-end-label">End zone</div>
+        </div>
+        <div class="field-play" id="field2-play">
+          <div class="field-marker" id="marker2"></div>
+        </div>
+        <div class="field-end right">
+          <div class="field-end-label">End zone</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slider-row">
+      <span class="slider-label">Yard line</span>
+      <input type="range" min="1" max="99" value="50" id="dec-yl" step="1" />
+      <span class="slider-value" id="dec-yl-display">Own 50</span>
+    </div>
+    <div class="slider-row">
+      <span class="slider-label">Yards to go</span>
+      <input type="range" min="1" max="15" value="3" id="dec-ytg" step="1" />
+      <span class="slider-value" id="dec-ytg-display">3</span>
+    </div>
+
+    <div style="margin-top: 1.75rem;">
+      <div class="ev-row">
+        <span class="ev-label">Go for it</span>
+        <div class="ev-bar-track">
+          <div class="ev-bar-zero-line" id="zero-go"></div>
+          <div class="ev-bar-fill" id="bar-go" style="background: #1f7a48"></div>
+        </div>
+        <span class="ev-value" id="ev-go">+0.00</span>
+      </div>
+      <div class="ev-row">
+        <span class="ev-label">Field goal</span>
+        <div class="ev-bar-track">
+          <div class="ev-bar-zero-line" id="zero-fg"></div>
+          <div class="ev-bar-fill" id="bar-fg" style="background: #c8a035"></div>
+        </div>
+        <span class="ev-value" id="ev-fg">+0.00</span>
+      </div>
+      <div class="ev-row">
+        <span class="ev-label">Punt</span>
+        <div class="ev-bar-track">
+          <div class="ev-bar-zero-line" id="zero-pt"></div>
+          <div class="ev-bar-fill" id="bar-pt" style="background: #79797a"></div>
+        </div>
+        <span class="ev-value" id="ev-pt">+0.00</span>
+      </div>
+    </div>
+
+    <div class="recommendation-banner">
+      <span class="label">The model says</span>
+      <span class="verdict" id="rec-text">Go for it</span>
+    </div>
+  </div>
+
+  <h3>What this model can and can't do</h3>
+  <p>This decision engine assumes <strong>risk-neutrality over points</strong> — a 50% chance of 7 points equals a guaranteed 3.5. That's a fine approximation early in games but breaks down late, when score and time create asymmetric incentives. Real production systems (like nfl4th) use win probability instead.</p>
+  <p>It also uses <strong>league-average rates</strong> for everything. A team with a great offense and a weak defense should arguably be more aggressive than the model suggests; a team with the opposite profile should be more conservative.</p>
+  <p>Despite these limitations, the model robustly finds the same headline result Romer found in 2003: <strong>NFL coaches are systematically more conservative than expected-value-maximizing.</strong> Twenty years of analytics evangelism have moved the needle, but not nearly enough.</p>
+</section>
+
+<div class="footer">
+  Built as part of a replication and extension of Romer, D. (2003), "It's Fourth Down and What Does the Bellman Equation Say?" — Data from nflfastR via nfl_data_py, 2020–2024 seasons.
+</div>
+
+</article>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="explainer.js"></script>
+</body>
+</html>
