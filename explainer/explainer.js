@@ -1,9 +1,8 @@
 // ============================================================================
-// Approximate model data (matches Romer's curves and your replication).
-// Replace with your real exported JSON when ready.
+// Model data
 // ============================================================================
 
-const V = (() => {
+function buildFallbackModelData() {
   const arr = new Array(100).fill(0);
   for (let yl = 1; yl <= 99; yl++) {
     if (yl <= 15) arr[yl] = -1.6 + (yl - 1) * 0.107;
@@ -11,29 +10,92 @@ const V = (() => {
     else arr[yl] = (yl - 15) / 18 + (yl - 50) * 0.02;
     if (yl >= 90) arr[yl] += (yl - 90) * 0.18;
   }
+  const fg = {};
+  for (let yl = 51; yl <= 99; yl++) {
+    const distance = (100 - yl) + 17;
+    const z = 6.16 - 0.103 * distance;
+    fg[yl] = 1 / (1 + Math.exp(-z));
+  }
+  const punt = {};
+  for (let yl = 1; yl <= 67; yl++) {
+    punt[yl] = yl <= 5 ? -2.4 : -2.5 + (yl - 1) * 0.038;
+  }
+  const conv = [];
+  for (let ytg = 1; ytg <= 15; ytg++) {
+    for (let yl = 1; yl <= 99; yl++) {
+      const nearGoalLine = yl >= 90 ? 1 : 0;
+      const z = 0.91 - 0.186 * ytg - 0.001 * yl - 0.286 * nearGoalLine;
+      conv.push({ ytg, yl, p: 1 / (1 + Math.exp(-z)) });
+    }
+  }
+  return normalizeModelData({ V: arr, fg, punt, conv });
+}
+
+function lookupToArray(lookup, maxIndex = 99) {
+  const arr = new Array(maxIndex + 1).fill(null);
+  Object.entries(lookup || {}).forEach(([key, value]) => {
+    const index = parseInt(key, 10);
+    arr[index] = value === null || Number.isNaN(value) ? null : Number(value);
+  });
   return arr;
-})();
+}
+
+function normalizeModelData(raw) {
+  const V = Array.isArray(raw.V) ? raw.V.slice() : lookupToArray(raw.V);
+  const fg = lookupToArray(raw.fg);
+  const punt = lookupToArray(raw.punt);
+  const conv = new Map();
+
+  (raw.conv || []).forEach((row) => {
+    conv.set(`${row.ytg}-${row.yl}`, row.p === null ? null : Number(row.p));
+  });
+
+  return { V, fg, punt, conv };
+}
+
+function loadModelData() {
+  const request = new XMLHttpRequest();
+  try {
+    request.open('GET', 'model_data.json', false);
+    request.overrideMimeType('application/json');
+    request.send(null);
+    if (request.status === 200 || request.status === 0) {
+      return normalizeModelData(JSON.parse(request.responseText));
+    }
+  } catch (error) {
+    console.warn('Using fallback model data because model_data.json could not be loaded.', error);
+  }
+  return buildFallbackModelData();
+}
+
+const modelData = loadModelData();
+const V = modelData.V;
+const fgByYardline = modelData.fg;
+const puntByYardline = modelData.punt;
+const conversionBySituation = modelData.conv;
+const fgDistances = fgByYardline
+  .map((p, yl) => (p === null || p === undefined ? null : 117 - yl))
+  .filter((distance) => Number.isFinite(distance))
+  .sort((a, b) => a - b);
 
 function pMakeFG(distance) {
-  const z = 6.16 - 0.103 * distance;
-  return 1 / (1 + Math.exp(-z));
+  const ownYardline = 117 - distance;
+  return pMakeFGByYL(ownYardline);
 }
 
 function pMakeFGByYL(ownYardline) {
-  const distance = (100 - ownYardline) + 17;
-  return pMakeFG(distance);
+  const p = fgByYardline[ownYardline];
+  return p === null || p === undefined ? null : p;
 }
 
 function eVPunt(ownYardline) {
-  if (ownYardline <= 5) return -2.4;
-  if (ownYardline >= 65) return null;
-  return -2.5 + (ownYardline - 1) * 0.038;
+  const ev = puntByYardline[ownYardline];
+  return ev === null || ev === undefined ? null : ev;
 }
 
 function pConvert(ydstogo, ownYardline) {
-  const nearGoalLine = ownYardline >= 90 ? 1 : 0;
-  const z = 0.91 - 0.186 * ydstogo - 0.001 * ownYardline - 0.286 * nearGoalLine;
-  return 1 / (1 + Math.exp(-z));
+  const p = conversionBySituation.get(`${ydstogo}-${ownYardline}`);
+  return p === null || p === undefined ? null : p;
 }
 
 // Football-themed chart palette
@@ -204,10 +266,10 @@ function setIter(n) {
 new Chart(document.getElementById('fg-chart'), {
   type: 'line',
   data: {
-    labels: Array.from({length: 50}, (_, i) => i + 18),
+    labels: fgDistances,
     datasets: [{
       label: 'P(make)',
-      data: Array.from({length: 50}, (_, i) => pMakeFG(i + 18)),
+      data: fgDistances.map((distance) => pMakeFG(distance)),
       borderColor: COLORS.penaltyRed,
       backgroundColor: 'rgba(176, 48, 40, 0.10)',
       fill: true,
@@ -245,50 +307,40 @@ new Chart(document.getElementById('fg-chart'), {
 new Chart(document.getElementById('punt-chart'), {
   type: 'line',
   data: {
-    labels: Array.from({length: 60}, (_, i) => i + 1),
-    datasets: [
-      {
-        label: 'Normal',
-        data: Array.from({length: 60}, (_, i) => {
-          const yl = i + 1;
-          if (yl >= 35) return Math.max(0.7, 0.97 - (yl - 35) * 0.012);
-          return 0.97;
-        }),
-        borderColor: COLORS.fieldGreen,
-        backgroundColor: 'rgba(31, 77, 45, 0.55)',
-        fill: 'origin', tension: 0.3, pointRadius: 0,
-      },
-      {
-        label: 'Touchback',
-        data: Array.from({length: 60}, (_, i) => {
-          const yl = i + 1;
-          if (yl < 30) return 0.005;
-          return Math.min(0.28, 0.005 + (yl - 30) * 0.012);
-        }),
-        borderColor: COLORS.gold,
-        backgroundColor: 'rgba(200, 160, 53, 0.55)',
-        fill: 'origin', tension: 0.3, pointRadius: 0,
-      },
-    ],
+    labels: puntByYardline
+      .map((ev, yl) => (ev === null || ev === undefined ? null : yl))
+      .filter((yl) => yl !== null),
+    datasets: [{
+      label: 'E[V after punt]',
+      data: puntByYardline.filter((ev) => ev !== null && ev !== undefined),
+      borderColor: COLORS.fieldGreen,
+      backgroundColor: 'rgba(31, 77, 45, 0.12)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 0,
+      borderWidth: 2.5,
+    }],
   },
   options: {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'top', labels: { font: { size: 12 }, usePointStyle: true } },
+      legend: { display: false },
       tooltip: {
         backgroundColor: COLORS.fieldGreen,
         callbacks: {
-          label: (ctx) => `${ctx.dataset.label}: ${(ctx.parsed.y * 100).toFixed(1)}%`,
+          title: (ctx) => formatYardline(parseInt(ctx[0].label, 10)),
+          label: (ctx) => `Punt EV = ${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)} pts`,
         },
       },
     },
     scales: {
       x: { title: { display: true, text: "Kicking team's own yard line", font: { size: 12 } } },
       y: {
-        title: { display: true, text: 'Outcome probability', font: { size: 12 } },
-        min: 0, max: 1,
-        ticks: { callback: (v) => (v * 100) + '%' },
+        title: { display: true, text: 'Expected net points after punt', font: { size: 12 } },
+        grid: {
+          color: (ctx) => ctx.tick.value === 0 ? (isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)') : chartGridColor,
+        },
       },
     },
   },
@@ -364,24 +416,29 @@ const V_AFTER_OUR_SCORE = -V[KICKOFF_RETURN_YL];
 
 function evGoForIt(ownYL, ytg) {
   const p = pConvert(ytg, ownYL);
+  if (p === null) return null;
   const newYL = ownYL + ytg;
   let vIfConvert;
   if (newYL >= 100) vIfConvert = TD_VALUE + V_AFTER_OUR_SCORE;
   else vIfConvert = V[newYL];
+  if (vIfConvert === null || vIfConvert === undefined) return null;
   const oppOwnYL = 100 - ownYL;
   const vIfFail = -V[oppOwnYL];
+  if (V[oppOwnYL] === null || V[oppOwnYL] === undefined) return null;
   return p * vIfConvert + (1 - p) * vIfFail;
 }
 
 function evFG(ownYL) {
   if (ownYL < 50) return null;
   const p = pMakeFGByYL(ownYL);
+  if (p === null) return null;
   const vIfMade = FG_VALUE + V_AFTER_OUR_SCORE;
   const distToEZ = 100 - ownYL;
   let oppOwnYL;
   if (distToEZ < 20) oppOwnYL = 20;
   else oppOwnYL = 100 - (ownYL - 7);
   const vIfMissed = -V[oppOwnYL];
+  if (V[oppOwnYL] === null || V[oppOwnYL] === undefined) return null;
   return p * vIfMade + (1 - p) * vIfMissed;
 }
 

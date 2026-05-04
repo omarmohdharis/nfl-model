@@ -6,16 +6,29 @@ interactive explainer can load. Run this AFTER scripts 02-05
 have produced their CSVs.
 """
 
-import pandas as pd
 import json
 import os
+import math
+
+import pandas as pd
+
+
+def clean_for_json(value):
+    """Convert pandas/numpy NaN values to JSON-safe nulls."""
+    if isinstance(value, dict):
+        return {key: clean_for_json(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [clean_for_json(item) for item in value]
+    if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+        return None
+    return value
 
 V = pd.read_csv('output/value_function.csv')
 fg = pd.read_csv('output/fg_by_yardline.csv')
 punt = pd.read_csv('output/punt_values.csv')
 conv = pd.read_csv('output/conversion_probability.csv')
 
-data = {
+data = clean_for_json({
     'V': V.set_index('own_yardline')['V'].to_dict(),
     'fg': fg.set_index('own_yardline')['p_make'].to_dict(),
     'punt': punt.set_index('own_yardline_kicking')['E_V_punt'].to_dict(),
@@ -23,11 +36,11 @@ data = {
         {'ytg': int(r['ydstogo']), 'yl': int(r['own_yardline']), 'p': r['p_convert']}
         for _, r in conv.iterrows()
     ],
-}
+})
 
 os.makedirs('explainer', exist_ok=True)
 with open('explainer/model_data.json', 'w') as f:
-    json.dump(data, f)
+    json.dump(data, f, allow_nan=False)
 
 print(f"Exported model data to explainer/model_data.json")
 print(f"  V function: {len(data['V'])} yard lines")
