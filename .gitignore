@@ -27,3 +27,6 @@ Thumbs.db
 
 # Don't ignore figures — we want them in the repo
 !figures/
+
+.claude/
+.clone/
