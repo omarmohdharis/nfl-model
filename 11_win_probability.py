@@ -151,7 +151,7 @@ X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
 wp_model = Pipeline(
     [
         ("poly", PolynomialFeatures(degree=2, include_bias=False)),
-        ("lr", LogisticRegression(C=0.1, max_iter=500, solver="lbfgs")),
+        ("lr", LogisticRegression(C=0.1, max_iter=2000, solver="lbfgs")),
     ]
 )
 wp_model.fit(X_tr, y_tr)
@@ -481,9 +481,9 @@ print("Saved figures/11_wp_calibration.png")
 # ---------------------------------------------------------------------------
 # These two metrics should broadly agree — if they diverge, it tells us
 # something interesting about situational context.
-merged = ewa_summary.merge(
-    coach_summary[["coach", "avg_ev_gap"]], on="coach", how="inner"
-)
+# ewa_summary already contains avg_ev_gap (computed from fourth["ev_gap"]),
+# so no merge needed — merging would create _x/_y duplicate columns.
+merged = ewa_summary.dropna(subset=["avg_ev_gap"]).copy()
 
 fig, ax = plt.subplots(figsize=(9, 7))
 ax.scatter(
