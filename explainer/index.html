@@ -665,9 +665,578 @@
     color: var(--ink-soft);
     font-style: italic;
   }
+
+  /* ============================================================
+     ANIMATED INTRO OVERLAY
+     ============================================================ */
+
+  #intro-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #060e07;
+    overflow: hidden;
+    font-family: 'Inter', -apple-system, sans-serif;
+    transition: transform 0.9s cubic-bezier(0.76, 0, 0.24, 1);
+  }
+  #intro-overlay.io-exit {
+    transform: translateY(-100%);
+    pointer-events: none;
+  }
+  #intro-overlay.io-gone { display: none; }
+
+  /* Ambient glow behind the field */
+  .io-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 90% 55% at 50% 50%,
+        rgba(27, 80, 42, 0.7) 0%, transparent 70%),
+      #060e07;
+  }
+
+  /* ---- FIELD STRIP ---- */
+  .io-field {
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 170px;
+    background: linear-gradient(180deg, #1b5229 0%, #205e30 40%, #1e5a2d 70%, #1b5229 100%);
+    border-top: 3px solid rgba(255,255,255,0.32);
+    border-bottom: 3px solid rgba(255,255,255,0.32);
+    position: absolute;
+    overflow: visible;
+  }
+  /* Subtle alternating turf shading */
+  .io-field::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      rgba(0,0,0,0.08) 0, rgba(0,0,0,0.08) 25%,
+      transparent 25%, transparent 50%
+    );
+    pointer-events: none;
+  }
+
+  .io-yardline {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 2px;
+    background: rgba(255,255,255,0.45);
+    transform: translateX(-50%);
+    z-index: 1;
+  }
+  .io-yardline.major { background: rgba(255,255,255,0.75); width: 2px; }
+  .io-yardnum {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Inter', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    pointer-events: none;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    user-select: none;
+  }
+
+  /* Hash marks */
+  .io-hash {
+    position: absolute;
+    width: 18px;
+    height: 3px;
+    background: rgba(255,255,255,0.38);
+    transform: translateX(-50%);
+    z-index: 1;
+  }
+  .io-hash-top { top: 30px; }
+  .io-hash-bot { bottom: 30px; }
+
+  /* Line of scrimmage */
+  .io-los {
+    position: absolute;
+    left: 50%;
+    top: -6px; bottom: -6px;
+    width: 4px;
+    background: #f5d000;
+    transform: translateX(-50%);
+    box-shadow: 0 0 14px rgba(245,208,0,0.9), 0 0 4px rgba(245,208,0,1);
+    z-index: 4;
+  }
+  .io-los-label {
+    position: absolute;
+    left: 50%;
+    top: -26px;
+    transform: translateX(-50%);
+    font-family: 'Inter', sans-serif;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: #f5d000;
+    white-space: nowrap;
+    text-shadow: 0 0 8px rgba(245,208,0,0.8);
+    text-transform: uppercase;
+  }
+
+  /* First down marker */
+  .io-fd {
+    position: absolute;
+    left: 65%;
+    top: -6px; bottom: -6px;
+    width: 3px;
+    background: #ff6600;
+    transform: translateX(-50%);
+    box-shadow: 0 0 12px rgba(255,102,0,0.8);
+    z-index: 4;
+  }
+  .io-fd-label {
+    position: absolute;
+    left: 50%;
+    top: -26px;
+    transform: translateX(-50%);
+    font-family: 'Inter', sans-serif;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: #ff6600;
+    white-space: nowrap;
+    text-shadow: 0 0 8px rgba(255,102,0,0.8);
+    text-transform: uppercase;
+  }
+
+  /* Ball (CSS football) */
+  .io-ball {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 30px;
+    height: 20px;
+    background: #7a3a18;
+    border: 2.5px solid #3a1a08;
+    border-radius: 50% / 55%;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.6), 0 0 22px rgba(245,200,80,0.18);
+    z-index: 5;
+  }
+  .io-ball::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 9px; height: 1.5px;
+    background: rgba(255,255,255,0.65);
+    border-radius: 1px;
+    box-shadow: 0 -3px 0 rgba(255,255,255,0.65), 0 3px 0 rgba(255,255,255,0.65);
+  }
+
+  /* ---- SCORE BUG ---- */
+  .io-scorebug {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100%);
+    display: flex;
+    align-items: stretch;
+    height: 60px;
+    border-radius: 0 0 6px 6px;
+    overflow: hidden;
+    box-shadow: 0 6px 28px rgba(0,0,0,0.55);
+    transition: transform 0.6s cubic-bezier(0.34, 1.4, 0.64, 1);
+    min-width: 380px;
+  }
+  .io-scorebug.visible {
+    transform: translateX(-50%) translateY(0);
+  }
+  .io-sb-team {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 18px;
+    flex: 1;
+    background: #182b1c;
+  }
+  .io-sb-city {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+  }
+  .io-sb-score {
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .io-sb-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 22px;
+    background: #0d1a0f;
+    gap: 2px;
+    min-width: 120px;
+    border-left: 1px solid rgba(255,255,255,0.08);
+    border-right: 1px solid rgba(255,255,255,0.08);
+  }
+  .io-sb-qtr {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  .io-sb-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Down & distance ticker */
+  .io-downdist {
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100%);
+    background: var(--gold);
+    color: #0d1a0f;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 5px 22px;
+    border-radius: 0 0 4px 4px;
+    white-space: nowrap;
+    transition: transform 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) 0.18s;
+  }
+  .io-downdist.visible {
+    transform: translateX(-50%) translateY(0);
+  }
+  .io-dd-sep { margin: 0 10px; opacity: 0.45; }
+
+  /* ---- PLAY CLOCK ---- */
+  .io-playclock {
+    position: absolute;
+    right: 6%;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #0d1a0f;
+    border: 2px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 14px 22px;
+    text-align: center;
+    min-width: 110px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .io-playclock.visible { opacity: 1; }
+  .io-playclock.urgent-glow {
+    border-color: rgba(255,68,68,0.5);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 20px rgba(255,68,68,0.25);
+  }
+  .io-pc-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 5px;
+  }
+  .io-pc-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 56px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.25s ease, font-size 0.25s ease;
+  }
+  .io-pc-num.urgent { color: #ff4444; }
+  .io-pc-num.tick { animation: pcTick 0.14s ease; }
+  @keyframes pcTick {
+    0%   { transform: scale(1.18); }
+    100% { transform: scale(1); }
+  }
+
+  /* ---- SCREEN FLASH ---- */
+  .io-flash {
+    position: absolute;
+    inset: 0;
+    background: white;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .io-flash.pop { animation: flashPop 0.45s ease forwards; }
+  @keyframes flashPop {
+    0%   { opacity: 0; }
+    12%  { opacity: 0.7; }
+    100% { opacity: 0; }
+  }
+
+  /* ---- TIMEOUT GRAPHIC ---- */
+  .io-timeout {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -46%) scale(0.88);
+    background: linear-gradient(135deg, #1c1800 0%, #2b2400 100%);
+    border: 2.5px solid var(--gold);
+    border-radius: 5px;
+    padding: 18px 36px 14px;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.45s cubic-bezier(0.34, 1.5, 0.64, 1);
+    box-shadow:
+      0 0 50px rgba(200,160,53,0.35),
+      0 10px 40px rgba(0,0,0,0.65);
+    white-space: nowrap;
+    z-index: 10;
+  }
+  .io-timeout.visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    pointer-events: auto;
+  }
+  .io-to-word {
+    font-family: 'Inter', sans-serif;
+    font-size: 42px;
+    font-weight: 900;
+    letter-spacing: 0.22em;
+    color: var(--gold);
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .io-to-detail {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+  .io-to-dots {
+    display: flex;
+    justify-content: center;
+    gap: 7px;
+    margin-top: 12px;
+  }
+  .io-to-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    border: 1.5px solid rgba(255,255,255,0.25);
+  }
+  .io-to-dot.used { background: var(--gold); border-color: var(--gold); }
+  .io-to-dot.calling {
+    background: #fff;
+    border-color: #fff;
+    animation: dotPulse 0.55s ease infinite alternate;
+  }
+  @keyframes dotPulse {
+    from { opacity: 1; box-shadow: 0 0 6px white; }
+    to   { opacity: 0.35; box-shadow: none; }
+  }
+
+  /* ---- SITUATION TEXT ---- */
+  .io-situation {
+    position: absolute;
+    bottom: 7%;
+    left: 50%;
+    transform: translateX(-50%) translateY(18px);
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.65s ease, transform 0.65s ease;
+    white-space: nowrap;
+    z-index: 10;
+  }
+  .io-situation.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+  .io-sit-down {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 52px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .io-sit-down sup {
+    font-size: 0.45em;
+    vertical-align: super;
+    letter-spacing: 0;
+  }
+  .io-sit-context {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+  .io-sit-rule {
+    width: 38px;
+    height: 2px;
+    background: var(--gold);
+    margin: 12px auto;
+  }
+  .io-sit-q {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gold);
+    letter-spacing: 0.04em;
+  }
+
+  /* ---- SKIP BUTTON ---- */
+  .io-skip {
+    position: absolute;
+    bottom: 22px;
+    right: 26px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.38);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    padding: 8px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+    z-index: 30;
+  }
+  .io-skip:hover {
+    color: rgba(255,255,255,0.85);
+    border-color: rgba(255,255,255,0.45);
+  }
 </style>
 </head>
 <body>
+
+<!-- ============================================================
+     INTRO OVERLAY
+     ============================================================ -->
+<div id="intro-overlay" aria-hidden="true">
+
+  <!-- White flash layer (fires on timeout call) -->
+  <div class="io-flash" id="io-flash"></div>
+
+  <!-- Ambient background glow -->
+  <div class="io-bg"></div>
+
+  <!-- Football field strip -->
+  <div class="io-field">
+    <!-- Yard lines: field shows own 30 → own 50 (own 40 = 50%) -->
+    <div class="io-yardline" style="left:0%">
+      <span class="io-yardnum">30</span>
+    </div>
+    <div class="io-yardline" style="left:25%"></div>
+    <div class="io-yardline major" style="left:50%">
+      <span class="io-yardnum">40</span>
+    </div>
+    <div class="io-yardline" style="left:75%"></div>
+    <div class="io-yardline major" style="left:100%">
+      <span class="io-yardnum">50</span>
+    </div>
+
+    <!-- Hash marks (top) -->
+    <div class="io-hash io-hash-top" style="left:0%"></div>
+    <div class="io-hash io-hash-top" style="left:25%"></div>
+    <div class="io-hash io-hash-top" style="left:50%"></div>
+    <div class="io-hash io-hash-top" style="left:75%"></div>
+    <div class="io-hash io-hash-top" style="left:100%"></div>
+
+    <!-- Hash marks (bottom) -->
+    <div class="io-hash io-hash-bot" style="left:0%"></div>
+    <div class="io-hash io-hash-bot" style="left:25%"></div>
+    <div class="io-hash io-hash-bot" style="left:50%"></div>
+    <div class="io-hash io-hash-bot" style="left:75%"></div>
+    <div class="io-hash io-hash-bot" style="left:100%"></div>
+
+    <!-- Line of scrimmage at own 40 = 50% -->
+    <div class="io-los">
+      <span class="io-los-label">Line of scrimmage</span>
+    </div>
+
+    <!-- First down marker at own 43 = 65% -->
+    <div class="io-fd">
+      <span class="io-fd-label">1st down</span>
+    </div>
+
+    <!-- Ball on the LOS -->
+    <div class="io-ball"></div>
+  </div>
+
+  <!-- Broadcast score bug -->
+  <div class="io-scorebug" id="io-scorebug">
+    <div class="io-sb-team">
+      <span class="io-sb-city">Home</span>
+      <span class="io-sb-score">17</span>
+    </div>
+    <div class="io-sb-center">
+      <div class="io-sb-qtr">4th Qtr</div>
+      <div class="io-sb-time">0:47</div>
+    </div>
+    <div class="io-sb-team" style="flex-direction:row-reverse">
+      <span class="io-sb-city">Away</span>
+      <span class="io-sb-score">17</span>
+    </div>
+  </div>
+
+  <!-- Down & distance ticker below score bug -->
+  <div class="io-downdist" id="io-downdist">
+    4th &amp; 3
+    <span class="io-dd-sep">·</span>
+    Own 40
+  </div>
+
+  <!-- Play clock (right side) -->
+  <div class="io-playclock" id="io-playclock">
+    <div class="io-pc-label">Play Clock</div>
+    <div class="io-pc-num" id="io-pc-num">10</div>
+  </div>
+
+  <!-- Timeout graphic (center, appears at clock = 3) -->
+  <div class="io-timeout" id="io-timeout">
+    <div class="io-to-word">Timeout</div>
+    <div class="io-to-detail">Offense · Final Timeout</div>
+    <div class="io-to-dots">
+      <span class="io-to-dot used"></span>
+      <span class="io-to-dot used"></span>
+      <span class="io-to-dot calling"></span>
+    </div>
+  </div>
+
+  <!-- Situation text (bottom, appears after timeout) -->
+  <div class="io-situation" id="io-situation">
+    <div class="io-sit-down">4<sup>th</sup> &amp; 3</div>
+    <div class="io-sit-context">Tied · 4th Qtr · Own 40-yard line</div>
+    <div class="io-sit-rule"></div>
+    <div class="io-sit-q">What does the model say?</div>
+  </div>
+
+  <button class="io-skip" onclick="skipIntro()">Skip ›</button>
+</div>
 
 <div class="hero">
   <div class="hero-content">
@@ -884,5 +1453,106 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="explainer.js"></script>
+
+<script>
+/* ============================================================
+   INTRO SEQUENCE
+   ============================================================ */
+(function () {
+  // Skip if already played this session
+  var overlay    = document.getElementById('intro-overlay');
+  var scorebug   = document.getElementById('io-scorebug');
+  var downdist   = document.getElementById('io-downdist');
+  var playclock  = document.getElementById('io-playclock');
+  var pcNum      = document.getElementById('io-pc-num');
+  var timeoutEl  = document.getElementById('io-timeout');
+  var situationEl= document.getElementById('io-situation');
+  var flash      = document.getElementById('io-flash');
+
+  var clockVal     = 10;
+  var clockTimer   = null;
+  var exited       = false;
+
+  function exitIntro() {
+    if (exited) return;
+    exited = true;
+    if (clockTimer) clearInterval(clockTimer);
+    sessionStorage.setItem('introPlayed', '1');
+    overlay.classList.add('io-exit');
+    setTimeout(function () { overlay.classList.add('io-gone'); }, 950);
+  }
+
+  // Expose for skip button
+  window.skipIntro = exitIntro;
+
+  // If already seen this session, skip immediately
+  if (sessionStorage.getItem('introPlayed')) {
+    overlay.classList.add('io-gone');
+    return;
+  }
+
+  // ── Step 1: Score bug drops down ──────────────────────────
+  setTimeout(function () {
+    scorebug.classList.add('visible');
+  }, 350);
+
+  // ── Step 2: Down & distance ticker ───────────────────────
+  setTimeout(function () {
+    downdist.classList.add('visible');
+  }, 620);
+
+  // ── Step 3: Play clock fades in ───────────────────────────
+  setTimeout(function () {
+    playclock.classList.add('visible');
+  }, 900);
+
+  // ── Step 4: Countdown 10 → 3 (280 ms per tick) ───────────
+  setTimeout(function () {
+    clockTimer = setInterval(function () {
+      clockVal--;
+      pcNum.textContent = clockVal;
+
+      // Tick pop animation
+      pcNum.classList.remove('tick');
+      void pcNum.offsetWidth; // force reflow
+      pcNum.classList.add('tick');
+
+      // Turn red at 4
+      if (clockVal <= 4) {
+        pcNum.classList.add('urgent');
+        playclock.classList.add('urgent-glow');
+      }
+
+      // ── Timeout called at 3 ──────────────────────────────
+      if (clockVal <= 3) {
+        clearInterval(clockTimer);
+
+        setTimeout(function () {
+          // White flash
+          flash.classList.remove('pop');
+          void flash.offsetWidth;
+          flash.classList.add('pop');
+
+          // Clock shows T/O
+          pcNum.textContent = 'T/O';
+          pcNum.style.fontSize = '26px';
+          pcNum.style.color = 'var(--gold)';
+
+          // Timeout graphic sweeps in
+          timeoutEl.classList.add('visible');
+        }, 180);
+
+        // ── Situation text fades up ──────────────────────
+        setTimeout(function () {
+          situationEl.classList.add('visible');
+        }, 1300);
+
+        // ── Auto-advance to site ─────────────────────────
+        setTimeout(exitIntro, 3600);
+      }
+    }, 280);
+  }, 1150);
+})();
+</script>
 </body>
 </html>
